@@ -16,6 +16,8 @@ Modern Android versions restrict apps from launching an activity over the locksc
 
 ## Build
 
+Arabic interface, with an opt-in floating capture card shown after unlock. On first use, grant QuickNote the Android "Display over other apps" permission from the in-app prompt; Android requires this explicit user permission. While enabled, a low-priority ongoing notification indicates the popup service is active.
+
 - Android Studio / Android SDK with API 35
 - JDK 17
 
