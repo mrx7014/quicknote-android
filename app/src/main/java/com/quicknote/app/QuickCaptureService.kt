@@ -25,9 +25,6 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ServiceCompat
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 class QuickCaptureService : Service() {
     private lateinit var db: EntryDb
@@ -41,8 +38,14 @@ class QuickCaptureService : Service() {
 
     private val unlockReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == Intent.ACTION_USER_PRESENT) handler.postDelayed({ showPopup() }, 320)
+            if (intent.action == Intent.ACTION_USER_PRESENT && AppPreferences.popupEnabled(this@QuickCaptureService)) {
+                handler.postDelayed({ showPopup() }, UNLOCK_SETTLE_DELAY_MS)
+            }
         }
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLocale.wrap(newBase))
     }
 
     override fun onCreate() {
@@ -57,49 +60,56 @@ class QuickCaptureService : Service() {
             startForeground(SERVICE_NOTIFICATION_ID, notification)
         }
         val filter = IntentFilter(Intent.ACTION_USER_PRESENT)
-        if (Build.VERSION.SDK_INT >= 33) registerReceiver(unlockReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        else registerReceiver(unlockReceiver, filter)
+        if (Build.VERSION.SDK_INT >= 33) {
+            // Android system/privileged components may send this event from a UID other than system_server.
+            // NOT_EXPORTED can silently filter those legitimate system broadcasts.
+            registerReceiver(unlockReceiver, filter, Context.RECEIVER_EXPORTED)
+        } else {
+            registerReceiver(unlockReceiver, filter)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_SHOW_POPUP) handler.post { showPopup() }
+        if (intent?.action == ACTION_SHOW_POPUP && AppPreferences.popupEnabled(this)) {
+            handler.postDelayed({ showPopup() }, PREVIEW_SETTLE_DELAY_MS)
+        }
         return START_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun showPopup() {
-        if (!Settings.canDrawOverlays(this)) return
+        if (!AppPreferences.popupEnabled(this) || !Settings.canDrawOverlays(this)) return
         hidePopup()
         selectedType = "note"
+        val direction = resources.configuration.layoutDirection
         val card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            layoutDirection = direction
             setPadding(dp(18), dp(16), dp(18), dp(17))
             background = rounded(Color.WHITE, dp(23), Color.rgb(224, 234, 227))
             elevation = dp(12).toFloat()
         }
-        val top = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; layoutDirection = View.LAYOUT_DIRECTION_RTL }
+        val top = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; layoutDirection = direction }
         val heading = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        heading.addView(text("التقطها بسرعة", 18f, Color.rgb(35, 51, 45), true))
-        heading.addView(text("اكتبها قبل ما تنساها", 12f, Color.rgb(115, 132, 123)).apply { setPadding(0, dp(3), 0, 0) })
+        heading.addView(text(getString(R.string.overlay_title), 18f, INK, true))
+        heading.addView(text(getString(R.string.overlay_subtitle), 12f, MUTED).apply { setPadding(0, dp(3), 0, 0) })
         top.addView(heading, LinearLayout.LayoutParams(0, -2, 1f))
-        val close = text("×", 25f, Color.rgb(104, 120, 111), true).apply {
+        top.addView(text("×", 25f, MUTED, true).apply {
             gravity = Gravity.CENTER
-            contentDescription = "إغلاق"
+            contentDescription = getString(R.string.overlay_close)
             setOnClickListener { hidePopup() }
-        }
-        top.addView(close, LinearLayout.LayoutParams(dp(38), dp(40)))
+        }, LinearLayout.LayoutParams(dp(38), dp(40)))
         card.addView(top)
 
         val input = EditText(this).apply {
-            hint = "اكتب ملاحظة أو مهمة…"
+            hint = getString(R.string.overlay_note_hint)
             textSize = 16f
             minLines = 3
             maxLines = 5
             gravity = Gravity.TOP or Gravity.START
-            textDirection = View.TEXT_DIRECTION_FIRST_STRONG_RTL
-            setTextColor(Color.rgb(35, 51, 45))
+            textDirection = View.TEXT_DIRECTION_FIRST_STRONG
+            setTextColor(INK)
             setHintTextColor(Color.rgb(146, 159, 151))
             setPadding(dp(13), dp(11), dp(13), dp(11))
             background = rounded(Color.rgb(246, 249, 246), dp(15), Color.rgb(234, 239, 235))
@@ -107,10 +117,10 @@ class QuickCaptureService : Service() {
         editor = input
         card.addView(input, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(13) })
 
-        val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; layoutDirection = View.LAYOUT_DIRECTION_RTL }
-        val note = actionButton("ملاحظة") { chooseType("note") }
-        val task = actionButton("مهمة") { chooseType("task") }
-        val voice = actionButton("صوت") { openVoiceCapture() }
+        val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; layoutDirection = direction }
+        val note = actionButton(getString(R.string.type_note)) { chooseType("note") }
+        val task = actionButton(getString(R.string.type_task)) { chooseType("task") }
+        val voice = actionButton(getString(R.string.type_voice)) { openVoiceCapture() }
         noteTypeButton = note
         taskTypeButton = task
         actions.addView(note, weightParams())
@@ -119,12 +129,12 @@ class QuickCaptureService : Service() {
         card.addView(actions, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(10) })
 
         val save = Button(this).apply {
-            text = "حفظ"
+            text = getString(R.string.overlay_save)
             isAllCaps = false
             textSize = 15f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Color.WHITE)
-            background = rounded(Color.rgb(23, 107, 91), dp(14))
+            background = rounded(TEAL, dp(14))
             setOnClickListener { saveCapture() }
         }
         card.addView(save, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(11) })
@@ -139,40 +149,37 @@ class QuickCaptureService : Service() {
         ).apply {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
             y = dp(76)
-            softInputMode = android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+            softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
         }
         try {
             windowManager.addView(card, params)
             input.requestFocus()
         } catch (_: Exception) {
             popupView = null
-            Toast.makeText(this, "تأكد من تفعيل إذن الظهور فوق التطبيقات", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.overlay_permission_toast), Toast.LENGTH_LONG).show()
         }
     }
 
     private fun chooseType(type: String) {
         selectedType = type
-        editor?.hint = if (type == "task") "إيه المهمة اللي عايز تفتكرها؟" else "اكتب ملاحظتك…"
+        editor?.hint = getString(if (type == "task") R.string.overlay_task_hint else R.string.overlay_note_hint)
         noteTypeButton?.apply {
-            setTextColor(if (type == "note") Color.WHITE else Color.rgb(55, 77, 66))
-            background = rounded(if (type == "note") Color.rgb(23, 107, 91) else Color.rgb(239, 245, 240), dp(12))
+            setTextColor(if (type == "note") Color.WHITE else INK)
+            background = rounded(if (type == "note") TEAL else SOFT, dp(12))
         }
         taskTypeButton?.apply {
-            setTextColor(if (type == "task") Color.WHITE else Color.rgb(55, 77, 66))
-            background = rounded(if (type == "task") Color.rgb(23, 107, 91) else Color.rgb(239, 245, 240), dp(12))
+            setTextColor(if (type == "task") Color.WHITE else INK)
+            background = rounded(if (type == "task") TEAL else SOFT, dp(12))
         }
     }
 
     private fun saveCapture() {
         val textValue = editor?.text?.toString()?.trim().orEmpty()
-        if (textValue.isBlank()) {
-            editor?.error = "اكتب حاجة الأول"
-            return
-        }
+        if (textValue.isBlank()) { editor?.error = getString(R.string.overlay_error); return }
         val id = db.add(selectedType, textValue)
         db.all().firstOrNull { it.id == id }?.let { NotificationHelper.showItem(this, it) }
         hidePopup()
-        Toast.makeText(this, if (selectedType == "task") "اتحفظت المهمة" else "اتحفظت الملاحظة", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(if (selectedType == "task") R.string.overlay_saved_task else R.string.overlay_saved_note), Toast.LENGTH_SHORT).show()
     }
 
     private fun openVoiceCapture() {
@@ -189,36 +196,18 @@ class QuickCaptureService : Service() {
         try { windowManager.removeView(view) } catch (_: Exception) { }
         popupView = null
         editor = null
+        noteTypeButton = null
+        taskTypeButton = null
         (getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).hideSoftInputFromWindow(view.windowToken, 0)
     }
 
     private fun actionButton(title: String, onClick: () -> Unit) = Button(this).apply {
-        text = title
-        isAllCaps = false
-        textSize = 12f
-        minHeight = dp(42)
-        minimumHeight = dp(42)
-        setPadding(dp(2), 0, dp(2), 0)
-        setTextColor(Color.rgb(55, 77, 66))
-        background = rounded(Color.rgb(239, 245, 240), dp(12))
-        setOnClickListener { onClick() }
+        text = title; isAllCaps = false; textSize = 12f; minHeight = dp(42); minimumHeight = dp(42)
+        setPadding(dp(2), 0, dp(2), 0); setTextColor(INK); background = rounded(SOFT, dp(12)); setOnClickListener { onClick() }
     }
-
-    private fun weightParams(last: Boolean = false) = LinearLayout.LayoutParams(0, dp(43), 1f).apply {
-        if (!last) marginEnd = dp(7)
-    }
-
-    private fun text(value: String, size: Float, color: Int, bold: Boolean = false) = TextView(this).apply {
-        text = value
-        textSize = size
-        setTextColor(color)
-        if (bold) setTypeface(typeface, Typeface.BOLD)
-    }
-
-    private fun rounded(fill: Int, radius: Int, stroke: Int? = null) = GradientDrawable().apply {
-        setColor(fill); cornerRadius = radius.toFloat(); if (stroke != null) setStroke(dp(1), stroke)
-    }
-
+    private fun weightParams(last: Boolean = false) = LinearLayout.LayoutParams(0, dp(43), 1f).apply { if (!last) marginEnd = dp(7) }
+    private fun text(value: String, size: Float, color: Int, bold: Boolean = false) = TextView(this).apply { text = value; textSize = size; setTextColor(color); if (bold) setTypeface(typeface, Typeface.BOLD) }
+    private fun rounded(fill: Int, radius: Int, stroke: Int? = null) = GradientDrawable().apply { setColor(fill); cornerRadius = radius.toFloat(); if (stroke != null) setStroke(dp(1), stroke) }
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     override fun onDestroy() {
@@ -231,5 +220,11 @@ class QuickCaptureService : Service() {
     companion object {
         const val ACTION_SHOW_POPUP = "com.quicknote.app.SHOW_POPUP"
         const val SERVICE_NOTIFICATION_ID = 6001
+        private const val UNLOCK_SETTLE_DELAY_MS = 650L
+        private const val PREVIEW_SETTLE_DELAY_MS = 200L
+        private const val INK = 0xFF374D42.toInt()
+        private const val MUTED = 0xFF73847B.toInt()
+        private const val TEAL = 0xFF176B5B.toInt()
+        private const val SOFT = 0xFFEFF5F0.toInt()
     }
 }

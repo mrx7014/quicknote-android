@@ -2,7 +2,6 @@ package com.quicknote.app
 
 import android.Manifest
 import android.app.Activity
-import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -50,10 +49,14 @@ class MainActivity : Activity() {
     private var player: MediaPlayer? = null
     private var recording = false
 
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLocale.wrap(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor = Color.rgb(244, 247, 243)
-        window.navigationBarColor = Color.rgb(244, 247, 243)
+        window.statusBarColor = PAGE
+        window.navigationBarColor = PAGE
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
         db = EntryDb(this)
@@ -67,7 +70,8 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         updatePopupPanel()
-        if (Settings.canDrawOverlays(this)) ensurePopupService() else stopService(Intent(this, QuickCaptureService::class.java))
+        if (AppPreferences.popupEnabled(this) && Settings.canDrawOverlays(this)) ensurePopupService()
+        else stopService(Intent(this, QuickCaptureService::class.java))
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -80,84 +84,81 @@ class MainActivity : Activity() {
         val scroll = ScrollView(this).apply { clipToPadding = false; setBackgroundColor(PAGE) }
         val page = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            layoutDirection = resources.configuration.layoutDirection
             setPadding(dp(20), dp(16), dp(20), dp(28))
         }
         scroll.addView(page, ViewGroup.LayoutParams(-1, -2))
 
         val top = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         val logo = TextView(this).apply {
-            text = "ق"
-            textSize = 23f
+            text = "Q"
+            textSize = 22f
             gravity = Gravity.CENTER
             setTextColor(Color.WHITE)
             setTypeface(typeface, Typeface.BOLD)
             background = rounded(TEAL, dp(15))
         }
         top.addView(logo, LinearLayout.LayoutParams(dp(48), dp(48)))
-        val brand = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(11), 0, 0, 0) }
-        brand.addView(label("QuickNote", 19f, INK, true))
-        brand.addView(label("مساحة صغيرة لكل فكرة", 12f, MUTED))
+        val brand = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(11), 0, dp(8), 0) }
+        brand.addView(label(getString(R.string.app_name), 19f, INK, true))
+        brand.addView(label(getString(R.string.brand_tagline), 12f, MUTED))
         top.addView(brand, LinearLayout.LayoutParams(0, -2, 1f))
-        val date = label(SimpleDateFormat("EEEE، d MMMM", Locale("ar")).format(Date()), 12f, MUTED, true)
-        top.addView(date)
+        val settings = label("⚙", 22f, TEAL, true).apply {
+            gravity = Gravity.CENTER
+            contentDescription = getString(R.string.settings_title)
+            background = rounded(Color.WHITE, dp(15), LINE)
+            setOnClickListener { startActivity(Intent(this@MainActivity, SettingsActivity::class.java)) }
+        }
+        top.addView(settings, LinearLayout.LayoutParams(dp(44), dp(44)))
         page.addView(top)
 
-        val greeting = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(0, dp(22), 0, dp(14))
-        }
-        greeting.addView(label("أفكارك، مرتّبة ببساطة", 24f, INK, true))
-        greeting.addView(label("دوّنها الآن وارجع لها وقت ما تحب.", 14f, MUTED).apply { setPadding(0, dp(5), 0, 0) })
+        val greeting = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, dp(22), 0, dp(14)) }
+        greeting.addView(label(getString(R.string.greeting_title), 24f, INK, true))
+        greeting.addView(label(getString(R.string.greeting_subtitle), 14f, MUTED).apply { setPadding(0, dp(5), 0, 0) })
         page.addView(greeting)
 
         val capture = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            layoutDirection = resources.configuration.layoutDirection
             setPadding(dp(17), dp(17), dp(17), dp(17))
             background = gradient(intArrayOf(Color.rgb(18, 77, 68), Color.rgb(26, 127, 104)), dp(23))
             elevation = dp(4).toFloat()
         }
         val cardHeading = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         val heading = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        heading.addView(label("تسجيل سريع", 18f, Color.WHITE, true))
-        heading.addView(label("فكرة، مهمة، أو رسالة صوتية", 12f, Color.rgb(210, 234, 226)).apply { setPadding(0, dp(3), 0, 0) })
+        heading.addView(label(getString(R.string.capture_title), 18f, Color.WHITE, true))
+        heading.addView(label(getString(R.string.capture_subtitle), 12f, Color.rgb(210, 234, 226)).apply { setPadding(0, dp(3), 0, 0) })
         cardHeading.addView(heading, LinearLayout.LayoutParams(0, -2, 1f))
-        cardHeading.addView(label("● مباشر", 11f, Color.rgb(214, 245, 224), true).apply {
+        cardHeading.addView(label("● ${getString(R.string.live_badge)}", 10f, Color.rgb(214, 245, 224), true).apply {
             setPadding(dp(9), dp(6), dp(9), dp(6)); background = rounded(Color.argb(38, 255, 255, 255), dp(20))
         })
         capture.addView(cardHeading)
 
         editor = EditText(this).apply {
-            hint = "إيه اللي في بالك؟"
+            hint = getString(R.string.input_note_hint)
             textSize = 16f
             minLines = 3
             maxLines = 5
             gravity = Gravity.TOP or Gravity.START
-            textDirection = View.TEXT_DIRECTION_FIRST_STRONG_RTL
+            textDirection = View.TEXT_DIRECTION_FIRST_STRONG
             setTextColor(INK)
             setHintTextColor(Color.rgb(128, 145, 138))
             setPadding(dp(14), dp(12), dp(14), dp(12))
             background = rounded(Color.rgb(249, 251, 248), dp(15))
         }
-        val editParams = LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(15) }
-        capture.addView(editor, editParams)
+        capture.addView(editor, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(15) })
 
-        val typeRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(0, dp(12), 0, 0)
-        }
-        noteButton = typeButton("ملاحظة") { selectType("note") }
-        taskButton = typeButton("مهمة") { selectType("task") }
-        voiceButton = typeButton("صوت") { toggleRecording() }
+        val typeRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; layoutDirection = resources.configuration.layoutDirection; setPadding(0, dp(12), 0, 0) }
+        noteButton = typeButton(getString(R.string.type_note)) { selectType("note") }
+        taskButton = typeButton(getString(R.string.type_task)) { selectType("task") }
+        voiceButton = typeButton(getString(R.string.type_voice)) { toggleRecording() }
         typeRow.addView(noteButton, weightedParams())
         typeRow.addView(taskButton, weightedParams())
         typeRow.addView(voiceButton, weightedParams(last = true))
         capture.addView(typeRow)
 
         val saveButton = Button(this).apply {
-            text = "حفظ في ملاحظاتي"
+            text = getString(R.string.save_button)
             isAllCaps = false
             textSize = 15f
             setTypeface(typeface, Typeface.BOLD)
@@ -170,24 +171,23 @@ class MainActivity : Activity() {
 
         val popup = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            layoutDirection = resources.configuration.layoutDirection
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(14), dp(13), dp(14), dp(13))
             background = rounded(Color.WHITE, dp(17), LINE)
             elevation = dp(2).toFloat()
         }
-        val popupIcon = label("↗", 20f, TEAL, true).apply {
+        popup.addView(label("↗", 20f, TEAL, true).apply {
             gravity = Gravity.CENTER
             background = rounded(Color.rgb(230, 244, 237), dp(13))
-        }
-        popup.addView(popupIcon, LinearLayout.LayoutParams(dp(42), dp(42)))
-        val popupCopy = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(10), 0, 0, 0) }
-        popupCopy.addView(label("النافذة عند فتح الهاتف", 14f, INK, true))
-        popupStatus = label("جارٍ التحقق من الإعداد…", 11f, MUTED).apply { setPadding(0, dp(3), 0, 0) }
+        }, LinearLayout.LayoutParams(dp(42), dp(42)))
+        val popupCopy = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(10), 0, dp(8), 0) }
+        popupCopy.addView(label(getString(R.string.popup_title), 14f, INK, true))
+        popupStatus = label("", 11f, MUTED).apply { setPadding(0, dp(3), 0, 0) }
         popupCopy.addView(popupStatus)
         popup.addView(popupCopy, LinearLayout.LayoutParams(0, -2, 1f))
         popupAction = Button(this).apply {
-            text = "تفعيل"
+            text = getString(R.string.popup_enable)
             isAllCaps = false
             textSize = 12f
             setTextColor(Color.WHITE)
@@ -197,37 +197,32 @@ class MainActivity : Activity() {
         popup.addView(popupAction, LinearLayout.LayoutParams(-2, dp(42)))
         page.addView(popup, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(13) })
 
-        val statsTitle = label("ملخصك", 18f, INK, true).apply { setPadding(0, dp(22), 0, dp(10)) }
-        page.addView(statsTitle)
-        val stats = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; layoutDirection = View.LAYOUT_DIRECTION_RTL }
-        val statCard1 = statCard("ملاحظات", "0", Color.rgb(230, 244, 237))
-        val statCard2 = statCard("مهام مفتوحة", "0", Color.rgb(245, 239, 221))
-        val statCard3 = statCard("صوتيات", "0", Color.rgb(236, 233, 247))
-        countNotes = statCard1.second
-        countTasks = statCard2.second
-        countVoices = statCard3.second
-        stats.addView(statCard1.first, weightedStatParams())
-        stats.addView(statCard2.first, weightedStatParams())
-        stats.addView(statCard3.first, weightedStatParams(last = true))
+        page.addView(label(getString(R.string.summary_title), 18f, INK, true).apply { setPadding(0, dp(22), 0, dp(10)) })
+        val stats = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; layoutDirection = resources.configuration.layoutDirection }
+        val stat1 = statCard(getString(R.string.stat_notes), Color.rgb(230, 244, 237))
+        val stat2 = statCard(getString(R.string.stat_tasks), Color.rgb(245, 239, 221))
+        val stat3 = statCard(getString(R.string.stat_voice), Color.rgb(236, 233, 247))
+        countNotes = stat1.second; countTasks = stat2.second; countVoices = stat3.second
+        stats.addView(stat1.first, weightedStatParams())
+        stats.addView(stat2.first, weightedStatParams())
+        stats.addView(stat3.first, weightedStatParams(last = true))
         page.addView(stats)
 
         val savedTitle = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            layoutDirection = resources.configuration.layoutDirection
             setPadding(0, dp(22), 0, dp(10))
         }
-        savedTitle.addView(label("عناصرك المحفوظة", 18f, INK, true), LinearLayout.LayoutParams(0, -2, 1f))
-        savedTitle.addView(label("على هذا الجهاز", 11f, MUTED))
+        savedTitle.addView(label(getString(R.string.saved_title), 18f, INK, true), LinearLayout.LayoutParams(0, -2, 1f))
+        savedTitle.addView(label(getString(R.string.saved_device), 11f, MUTED))
         page.addView(savedTitle)
 
-        val filters = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-        }
-        listOf("all" to "الكل", "note" to "ملاحظات", "task" to "مهام", "voice" to "صوتيات").forEachIndexed { index, pair ->
+        val filters = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; layoutDirection = resources.configuration.layoutDirection }
+        val filterLabels = listOf("all" to R.string.filter_all, "note" to R.string.filter_notes, "task" to R.string.filter_tasks, "voice" to R.string.filter_voice)
+        filterLabels.forEachIndexed { index, pair ->
             val chip = Button(this).apply {
-                text = pair.second
+                text = getString(pair.second)
                 isAllCaps = false
                 textSize = 11f
                 minHeight = dp(38)
@@ -238,41 +233,26 @@ class MainActivity : Activity() {
             filters.addView(chip, LinearLayout.LayoutParams(0, dp(38), 1f).apply { if (index < 3) marginEnd = dp(6) })
         }
         page.addView(filters)
-        listContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; layoutDirection = View.LAYOUT_DIRECTION_RTL }
+        listContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; layoutDirection = resources.configuration.layoutDirection }
         page.addView(listContainer, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(10) })
         setContentView(scroll)
         selectType("note")
     }
 
-    private fun statCard(title: String, initial: String, tint: Int): Pair<LinearLayout, TextView> {
-        val card = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(10), dp(11), dp(10), dp(11))
-            background = rounded(tint, dp(15))
-        }
-        val number = label(initial, 20f, INK, true)
+    private fun statCard(title: String, tint: Int): Pair<LinearLayout, TextView> {
+        val card = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(10), dp(11), dp(10), dp(11)); background = rounded(tint, dp(15)) }
+        val number = label("0", 20f, INK, true)
         card.addView(number)
         card.addView(label(title, 10f, MUTED).apply { setPadding(0, dp(3), 0, 0) })
         return card to number
     }
 
-    private fun weightedStatParams(last: Boolean = false) = LinearLayout.LayoutParams(0, -2, 1f).apply {
-        if (!last) marginEnd = dp(7)
-    }
-
+    private fun weightedStatParams(last: Boolean = false) = LinearLayout.LayoutParams(0, -2, 1f).apply { if (!last) marginEnd = dp(7) }
     private fun typeButton(title: String, click: () -> Unit) = Button(this).apply {
-        text = title
-        isAllCaps = false
-        textSize = 13f
-        minHeight = dp(43)
-        minimumHeight = dp(43)
-        setPadding(dp(4), 0, dp(4), 0)
-        setOnClickListener { click() }
+        text = title; isAllCaps = false; textSize = 13f; minHeight = dp(43); minimumHeight = dp(43)
+        setPadding(dp(4), 0, dp(4), 0); setOnClickListener { click() }
     }
-
-    private fun weightedParams(last: Boolean = false) = LinearLayout.LayoutParams(0, dp(44), 1f).apply {
-        if (!last) marginEnd = dp(7)
-    }
+    private fun weightedParams(last: Boolean = false) = LinearLayout.LayoutParams(0, dp(44), 1f).apply { if (!last) marginEnd = dp(7) }
 
     private fun selectType(type: String) {
         selectedType = type
@@ -282,21 +262,17 @@ class MainActivity : Activity() {
         taskButton.setTextColor(if (type == "task") TEAL else Color.WHITE)
         voiceButton.background = rounded(Color.argb(35, 255, 255, 255), dp(12))
         voiceButton.setTextColor(Color.WHITE)
-        editor.hint = if (type == "task") "اكتب المهمة اللي عايز تفتكرها…" else "اكتب الفكرة قبل ما تنساها…"
+        editor.hint = getString(if (type == "task") R.string.input_task_hint else R.string.input_note_hint)
     }
 
     private fun saveTextEntry() {
         val text = editor.text.toString().trim()
-        if (text.isEmpty()) {
-            editor.error = "اكتب حاجة الأول"
-            editor.requestFocus()
-            return
-        }
+        if (text.isEmpty()) { editor.error = getString(R.string.error_empty); editor.requestFocus(); return }
         val id = db.add(selectedType, text)
         db.all().firstOrNull { it.id == id }?.let { NotificationHelper.showItem(this, it) }
         editor.text.clear()
         (getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).hideSoftInputFromWindow(editor.windowToken, 0)
-        Toast.makeText(this, if (selectedType == "task") "اتحفظت المهمة" else "اتحفظت الملاحظة", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(if (selectedType == "task") R.string.saved_task_toast else R.string.saved_note_toast), Toast.LENGTH_SHORT).show()
         refreshEntries()
     }
 
@@ -316,21 +292,14 @@ class MainActivity : Activity() {
             activeRecorder.setAudioEncodingBitRate(96_000)
             activeRecorder.setAudioSamplingRate(44_100)
             activeRecorder.setOutputFile(file.absolutePath)
-            activeRecorder.prepare()
-            activeRecorder.start()
-            recorder = activeRecorder
-            recordingFile = file
-            recording = true
-            voiceButton.text = "إيقاف وحفظ"
+            activeRecorder.prepare(); activeRecorder.start()
+            recorder = activeRecorder; recordingFile = file; recording = true
+            voiceButton.text = getString(R.string.record_stop_save)
             voiceButton.background = rounded(Color.rgb(184, 68, 56), dp(12))
-            Toast.makeText(this, "بدأ التسجيل الصوتي", Toast.LENGTH_SHORT).show()
-        } catch (e: Exception) {
-            recorder?.release()
-            recorder = null
-            recordingFile?.delete()
-            recordingFile = null
-            recording = false
-            Toast.makeText(this, "تعذّر بدء التسجيل. تأكد من إذن الميكروفون.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.record_started), Toast.LENGTH_SHORT).show()
+        } catch (_: Exception) {
+            recorder?.release(); recorder = null; recordingFile?.delete(); recordingFile = null; recording = false
+            Toast.makeText(this, getString(R.string.record_failed), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -339,14 +308,15 @@ class MainActivity : Activity() {
         try { recorder?.stop() } catch (_: Exception) { file?.delete() }
         finally {
             recorder?.release(); recorder = null; recording = false; recordingFile = null
-            voiceButton.text = "صوت"
+            voiceButton.text = getString(R.string.type_voice)
             voiceButton.background = rounded(Color.argb(35, 255, 255, 255), dp(12))
         }
         if (save && file != null && file.exists() && file.length() > 0) {
-            val label = "رسالة صوتية · " + SimpleDateFormat("d MMM، h:mm a", Locale("ar")).format(Date())
-            val id = db.add("voice", label, file.absolutePath)
+            val locale = AppLocale.systemLocale(this)
+            val labelText = getString(R.string.item_voice) + " · " + SimpleDateFormat("d MMM, h:mm a", locale).format(Date())
+            val id = db.add("voice", labelText, file.absolutePath)
             db.all().firstOrNull { it.id == id }?.let { NotificationHelper.showItem(this, it) }
-            Toast.makeText(this, "اتحفظت الرسالة الصوتية", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.voice_saved), Toast.LENGTH_SHORT).show()
             refreshEntries()
         }
     }
@@ -361,31 +331,22 @@ class MainActivity : Activity() {
         countVoices.text = allItems.count { it.type == "voice" }.toString()
         val items = if (activeFilter == "all") allItems else allItems.filter { it.type == activeFilter }
         if (items.isEmpty()) {
-            val empty = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                gravity = Gravity.CENTER
-                setPadding(dp(20), dp(20), dp(20), dp(20))
-                background = rounded(Color.WHITE, dp(17), LINE)
-            }
-            empty.addView(label(if (allItems.isEmpty()) "لسه مفيش حاجة هنا" else "مفيش عناصر في القسم ده", 15f, INK, true))
-            empty.addView(label("ابدأ بتسجيل ملاحظة أو مهمة جديدة.", 12f, MUTED).apply { setPadding(0, dp(5), 0, 0) })
-            listContainer.addView(empty)
-            return
+            val empty = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; setPadding(dp(20), dp(20), dp(20), dp(20)); background = rounded(Color.WHITE, dp(17), LINE) }
+            empty.addView(label(getString(if (allItems.isEmpty()) R.string.empty_all_title else R.string.empty_filter_title), 15f, INK, true))
+            empty.addView(label(getString(R.string.empty_subtitle), 12f, MUTED).apply { setPadding(0, dp(5), 0, 0) })
+            listContainer.addView(empty); return
         }
         items.forEach { entry ->
             val card = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                layoutDirection = View.LAYOUT_DIRECTION_RTL
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp(12), dp(11), dp(10), dp(11))
-                background = rounded(Color.WHITE, dp(16), LINE)
+                orientation = LinearLayout.HORIZONTAL; layoutDirection = resources.configuration.layoutDirection; gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(12), dp(11), dp(10), dp(11)); background = rounded(Color.WHITE, dp(16), LINE)
             }
             val badgeColor = when (entry.type) { "task" -> Color.rgb(249, 243, 225); "voice" -> Color.rgb(237, 234, 248); else -> Color.rgb(230, 244, 237) }
             if (entry.type == "task") {
                 val checkbox = CheckBox(this).apply {
                     isChecked = entry.done
                     buttonTintList = android.content.res.ColorStateList.valueOf(TEAL)
-                    contentDescription = "تحديد المهمة كمكتملة"
+                    contentDescription = getString(R.string.task_completed)
                     setOnCheckedChangeListener { _, checked ->
                         db.setDone(entry.id, checked)
                         db.all().firstOrNull { it.id == entry.id }?.let { NotificationHelper.showItem(this@MainActivity, it) }
@@ -394,36 +355,30 @@ class MainActivity : Activity() {
                 }
                 card.addView(checkbox)
             } else {
-                val mark = when (entry.type) { "voice" -> "♫"; else -> "م" }
-                card.addView(label(mark, 18f, TEAL, true).apply {
-                    gravity = Gravity.CENTER
-                    background = rounded(badgeColor, dp(13))
-                }, LinearLayout.LayoutParams(dp(42), dp(42)))
+                val mark = if (entry.type == "voice") "♫" else "N"
+                card.addView(label(mark, 18f, TEAL, true).apply { gravity = Gravity.CENTER; background = rounded(badgeColor, dp(13)) }, LinearLayout.LayoutParams(dp(42), dp(42)))
             }
             val details = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(10), 0, dp(7), 0) }
             details.addView(label(entry.content, 14f, if (entry.done) MUTED else INK, true).apply {
-                maxLines = 2
-                ellipsize = android.text.TextUtils.TruncateAt.END
+                maxLines = 2; ellipsize = android.text.TextUtils.TruncateAt.END
                 if (entry.done) paintFlags = paintFlags or android.graphics.Paint.STRIKE_THRU_TEXT_FLAG
             })
-            val typeName = when (entry.type) { "task" -> "مهمة"; "voice" -> "رسالة صوتية"; else -> "ملاحظة" }
-            details.addView(label("$typeName  ·  ${SimpleDateFormat("d MMM، h:mm a", Locale("ar")).format(Date(entry.createdAt))}", 10f, MUTED).apply { setPadding(0, dp(5), 0, 0) })
+            val typeName = when (entry.type) { "task" -> getString(R.string.item_task); "voice" -> getString(R.string.item_voice); else -> getString(R.string.item_note) }
+            val locale = AppLocale.systemLocale(this)
+            val stamp = SimpleDateFormat("d MMM, h:mm a", locale).format(Date(entry.createdAt))
+            details.addView(label(getString(R.string.item_meta, typeName, stamp), 10f, MUTED).apply { setPadding(0, dp(5), 0, 0) })
             if (entry.type == "voice") details.setOnClickListener { playVoice(entry) }
             card.addView(details, LinearLayout.LayoutParams(0, -2, 1f))
-            val delete = TextView(this).apply {
-                text = "×"
-                textSize = 23f
-                gravity = Gravity.CENTER
-                setTextColor(MUTED)
-                contentDescription = "حذف العنصر"
+            card.addView(TextView(this).apply {
+                text = "×"; textSize = 23f; gravity = Gravity.CENTER; setTextColor(MUTED)
+                contentDescription = getString(R.string.delete_item)
                 setOnClickListener {
                     val removed = db.delete(entry.id)
                     NotificationHelper.removeItem(this@MainActivity, entry.id)
                     removed?.audioPath?.let { File(it).delete() }
                     refreshEntries()
                 }
-            }
-            card.addView(delete, LinearLayout.LayoutParams(dp(34), dp(42)))
+            }, LinearLayout.LayoutParams(dp(34), dp(42)))
             listContainer.addView(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
         }
     }
@@ -432,46 +387,41 @@ class MainActivity : Activity() {
         val path = entry.audioPath ?: return
         try {
             player?.release()
-            player = MediaPlayer().apply {
-                setDataSource(path)
-                setOnCompletionListener { it.release(); if (player === it) player = null }
-                prepare(); start()
-            }
-        } catch (_: Exception) { Toast.makeText(this, "تعذّر تشغيل الرسالة الصوتية", Toast.LENGTH_SHORT).show() }
+            player = MediaPlayer().apply { setDataSource(path); setOnCompletionListener { it.release(); if (player === it) player = null }; prepare(); start() }
+        } catch (_: Exception) { Toast.makeText(this, getString(R.string.voice_play_failed), Toast.LENGTH_SHORT).show() }
     }
 
     private fun updatePopupPanel() {
         if (!::popupStatus.isInitialized) return
-        val enabled = Settings.canDrawOverlays(this)
-        popupStatus.text = if (enabled) "مفعّلة — تظهر بعد كل فتح للهاتف" else "يلزم السماح بالظهور فوق التطبيقات"
-        popupStatus.setTextColor(if (enabled) TEAL else MUTED)
-        popupAction.text = if (enabled) "معاينة" else "تفعيل"
+        val permission = Settings.canDrawOverlays(this)
+        val enabled = AppPreferences.popupEnabled(this)
+        popupStatus.text = when {
+            enabled && permission -> getString(R.string.popup_active)
+            !permission -> getString(R.string.popup_permission_missing)
+            else -> getString(R.string.popup_disabled)
+        }
+        popupStatus.setTextColor(if (enabled && permission) TEAL else MUTED)
+        popupAction.text = if (enabled && permission) getString(R.string.popup_preview) else getString(R.string.popup_enable)
     }
 
     private fun onPopupAction() {
+        AppPreferences.setPopupEnabled(this, true)
         if (!Settings.canDrawOverlays(this)) {
-            try {
-                startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
-            } catch (_: Exception) {
-                startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION))
-            }
-        } else {
-            val intent = Intent(this, QuickCaptureService::class.java).setAction(QuickCaptureService.ACTION_SHOW_POPUP)
-            try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent) else startService(intent)
-            } catch (_: Exception) {
-                Toast.makeText(this, "افتح التطبيق مرة أخرى لإعادة تشغيل النافذة", Toast.LENGTH_LONG).show()
-            }
+            try { startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))) }
+            catch (_: Exception) { startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)) }
+            return
         }
+        val intent = Intent(this, QuickCaptureService::class.java).setAction(QuickCaptureService.ACTION_SHOW_POPUP)
+        try { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent) else startService(intent) }
+        catch (_: Exception) { Toast.makeText(this, getString(R.string.popup_open_failed), Toast.LENGTH_LONG).show() }
+        updatePopupPanel()
     }
 
     private fun ensurePopupService() {
         try {
             val intent = Intent(this, QuickCaptureService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent) else startService(intent)
-        } catch (_: Exception) {
-            Toast.makeText(this, "افتح التطبيق مرة أخرى لتفعيل النافذة العائمة", Toast.LENGTH_LONG).show()
-        }
+        } catch (_: Exception) { Toast.makeText(this, getString(R.string.popup_open_failed), Toast.LENGTH_LONG).show() }
     }
 
     private fun handleVoiceIntent(intent: Intent?) {
@@ -501,16 +451,9 @@ class MainActivity : Activity() {
     }
 
     private fun label(value: String, size: Float, color: Int, bold: Boolean = false) = TextView(this).apply {
-        text = value
-        textSize = size
-        setTextColor(color)
-        if (bold) setTypeface(typeface, Typeface.BOLD)
+        text = value; textSize = size; setTextColor(color); if (bold) setTypeface(typeface, Typeface.BOLD)
     }
-
-    private fun rounded(fill: Int, radius: Int, stroke: Int? = null) = GradientDrawable().apply {
-        setColor(fill); cornerRadius = radius.toFloat(); if (stroke != null) setStroke(dp(1), stroke)
-    }
-
+    private fun rounded(fill: Int, radius: Int, stroke: Int? = null) = GradientDrawable().apply { setColor(fill); cornerRadius = radius.toFloat(); if (stroke != null) setStroke(dp(1), stroke) }
     private fun gradient(colors: IntArray, radius: Int) = GradientDrawable(GradientDrawable.Orientation.TL_BR, colors).apply { cornerRadius = radius.toFloat() }
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
