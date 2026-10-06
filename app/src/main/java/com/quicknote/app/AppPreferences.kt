@@ -11,29 +11,40 @@ object AppPreferences {
     private const val FILE = "quicknote_preferences"
     const val KEY_LANGUAGE = "app_language"
     const val KEY_UNLOCK_POPUP = "unlock_popup_enabled"
+    private const val KEY_DARK_MODE = "dark_mode"
+    private const val KEY_HIDE_CONTENT = "hide_notification_content"
+    private const val KEY_APP_LOCK = "app_lock_enabled"
 
     fun preferences(context: Context) = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
     fun popupEnabled(context: Context): Boolean {
         val prefs = preferences(context)
-        // v1.1 had no explicit toggle. Preserve that user's opt-in special access on upgrade.
-        return if (prefs.contains(KEY_UNLOCK_POPUP)) prefs.getBoolean(KEY_UNLOCK_POPUP, false)
-        else Settings.canDrawOverlays(context)
+        return if (prefs.contains(KEY_UNLOCK_POPUP)) prefs.getBoolean(KEY_UNLOCK_POPUP, false) else Settings.canDrawOverlays(context)
     }
     fun setPopupEnabled(context: Context, enabled: Boolean) = preferences(context).edit().putBoolean(KEY_UNLOCK_POPUP, enabled).apply()
     fun selectedLanguage(context: Context) = preferences(context).getString(KEY_LANGUAGE, "system") ?: "system"
+    fun darkMode(context: Context) = preferences(context).getBoolean(KEY_DARK_MODE, false)
+    fun setDarkMode(context: Context, enabled: Boolean) = preferences(context).edit().putBoolean(KEY_DARK_MODE, enabled).apply()
+    fun hideNotificationContent(context: Context) = preferences(context).getBoolean(KEY_HIDE_CONTENT, false)
+    fun setHideNotificationContent(context: Context, enabled: Boolean) = preferences(context).edit().putBoolean(KEY_HIDE_CONTENT, enabled).apply()
+    fun appLockEnabled(context: Context) = preferences(context).getBoolean(KEY_APP_LOCK, false)
+    fun setAppLockEnabled(context: Context, enabled: Boolean) = preferences(context).edit().putBoolean(KEY_APP_LOCK, enabled).apply()
 }
 
 object AppLocale {
     fun wrap(base: Context): Context {
-        if (Build.VERSION.SDK_INT >= 33) return base
-        val language = AppPreferences.selectedLanguage(base)
-        if (language == "system") return base
-        val locale = if (language == "ar") Locale("ar") else Locale.ENGLISH
-        Locale.setDefault(locale)
-        val configuration = Configuration(base.resources.configuration)
-        configuration.setLocale(locale)
-        configuration.setLayoutDirection(locale)
-        return base.createConfigurationContext(configuration)
+        val config = Configuration(base.resources.configuration)
+        if (Build.VERSION.SDK_INT < 33) {
+            val language = AppPreferences.selectedLanguage(base)
+            if (language != "system") {
+                val locale = if (language == "ar") Locale("ar") else Locale.ENGLISH
+                Locale.setDefault(locale)
+                config.setLocale(locale)
+                config.setLayoutDirection(locale)
+            }
+        }
+        val nightFlag = if (AppPreferences.darkMode(base)) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO
+        config.uiMode = (config.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or nightFlag
+        return base.createConfigurationContext(config)
     }
 
     fun systemLocale(context: Context): Locale {

@@ -1,0 +1,26 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="@drawable/widget_background">
+    <TextView
+        android:id="@+id/widget_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="QuickNote"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:paddingBottom="8dp"
+        android:textColor="#24332E" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+        <TextView android:id="@+id/widget_note" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="Note" android:textColor="#176B5B" android:textStyle="bold" android:background="@drawable/widget_button_background" android:layout_marginEnd="4dp" />
+        <TextView android:id="@+id/widget_task" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="Task" android:textColor="#176B5B" android:textStyle="bold" android:background="@drawable/widget_button_background" android:layout_marginHorizontal="4dp" />
+        <TextView android:id="@+id/widget_voice" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="Voice" android:textColor="#176B5B" android:textStyle="bold" android:background="@drawable/widget_button_background" android:layout_marginStart="4dp" />
+    </LinearLayout>
+</LinearLayout>

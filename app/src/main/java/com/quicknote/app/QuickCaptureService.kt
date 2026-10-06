@@ -35,6 +35,11 @@ class QuickCaptureService : Service() {
     private var taskTypeButton: Button? = null
     private var selectedType = "note"
     private val handler = Handler(Looper.getMainLooper())
+    private val palette get() = AppPalette.from(this)
+    private val INK get() = palette.ink
+    private val MUTED get() = palette.muted
+    private val TEAL get() = palette.teal
+    private val SOFT get() = palette.soft
 
     private val unlockReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -87,7 +92,7 @@ class QuickCaptureService : Service() {
             orientation = LinearLayout.VERTICAL
             layoutDirection = direction
             setPadding(dp(18), dp(16), dp(18), dp(17))
-            background = rounded(Color.WHITE, dp(23), Color.rgb(224, 234, 227))
+            background = rounded(palette.surface, dp(23), palette.line)
             elevation = dp(12).toFloat()
         }
         val top = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; layoutDirection = direction }
@@ -110,9 +115,9 @@ class QuickCaptureService : Service() {
             gravity = Gravity.TOP or Gravity.START
             textDirection = View.TEXT_DIRECTION_FIRST_STRONG
             setTextColor(INK)
-            setHintTextColor(Color.rgb(146, 159, 151))
+            setHintTextColor(palette.hint)
             setPadding(dp(13), dp(11), dp(13), dp(11))
-            background = rounded(Color.rgb(246, 249, 246), dp(15), Color.rgb(234, 239, 235))
+            background = rounded(palette.field, dp(15), palette.line)
         }
         editor = input
         card.addView(input, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(13) })
@@ -222,9 +227,5 @@ class QuickCaptureService : Service() {
         const val SERVICE_NOTIFICATION_ID = 6001
         private const val UNLOCK_SETTLE_DELAY_MS = 650L
         private const val PREVIEW_SETTLE_DELAY_MS = 200L
-        private const val INK = 0xFF374D42.toInt()
-        private const val MUTED = 0xFF73847B.toInt()
-        private const val TEAL = 0xFF176B5B.toInt()
-        private const val SOFT = 0xFFEFF5F0.toInt()
     }
 }

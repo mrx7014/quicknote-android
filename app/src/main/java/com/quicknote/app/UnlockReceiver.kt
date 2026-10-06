@@ -9,6 +9,7 @@ import android.provider.Settings
 class UnlockReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
+        ReminderScheduler.rescheduleAll(context)
         if (!AppPreferences.popupEnabled(context)) return
         if (Settings.canDrawOverlays(context)) {
             try {
