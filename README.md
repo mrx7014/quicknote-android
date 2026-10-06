@@ -35,7 +35,7 @@ The signed APK is written to `app/build/outputs/apk/release/app-release.apk`. Ke
 
 ## GitHub Actions release
 
-The `Android release` workflow builds `assembleRelease` with the same persistent signing key, uploads the APK as an Actions artifact, and attaches it to a GitHub Release when a `v*` tag is pushed. Configure these repository Actions secrets once:
+The `Android release` workflow builds the release variant and uploads the APK as an Actions artifact. It signs with the persistent release key and attaches the APK to a GitHub Release for a `v*` tag only when all signing secrets are configured. Without them, it builds an unsigned APK for CI validation; do not install that artifact over the signed app. Configure these repository Actions secrets once:
 
 - `ANDROID_KEYSTORE_BASE64`
 - `ANDROID_KEYSTORE_PASSWORD`
