@@ -12,15 +12,32 @@
         android:text="QuickNote"
         android:textStyle="bold"
         android:textSize="16sp"
-        android:paddingBottom="8dp"
+        android:paddingBottom="4dp"
         android:textColor="#24332E" />
+    <TextView
+        android:id="@+id/widget_recent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:text=""
+        android:textSize="12sp"
+        android:textColor="#52635B" />
+    <TextView
+        android:id="@+id/widget_meta"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="11sp"
+        android:textColor="#52635B"
+        android:paddingBottom="7dp" />
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:orientation="horizontal">
-        <TextView android:id="@+id/widget_note" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="Note" android:textColor="#176B5B" android:textStyle="bold" android:background="@drawable/widget_button_background" android:layout_marginEnd="4dp" />
-        <TextView android:id="@+id/widget_task" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="Task" android:textColor="#176B5B" android:textStyle="bold" android:background="@drawable/widget_button_background" android:layout_marginHorizontal="4dp" />
-        <TextView android:id="@+id/widget_voice" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="Voice" android:textColor="#176B5B" android:textStyle="bold" android:background="@drawable/widget_button_background" android:layout_marginStart="4dp" />
+        <TextView android:id="@+id/widget_note" android:layout_width="0dp" android:layout_height="match_parent" android:minHeight="48dp" android:layout_weight="1" android:gravity="center" android:text="Note" android:textColor="#176B5B" android:textStyle="bold" android:background="@drawable/widget_button_background" android:layout_marginEnd="4dp" />
+        <TextView android:id="@+id/widget_task" android:layout_width="0dp" android:layout_height="match_parent" android:minHeight="48dp" android:layout_weight="1" android:gravity="center" android:text="Task" android:textColor="#176B5B" android:textStyle="bold" android:background="@drawable/widget_button_background" android:layout_marginHorizontal="4dp" />
+        <TextView android:id="@+id/widget_voice" android:layout_width="0dp" android:layout_height="match_parent" android:minHeight="48dp" android:layout_weight="1" android:gravity="center" android:text="Voice" android:textColor="#176B5B" android:textStyle="bold" android:background="@drawable/widget_button_background" android:layout_marginStart="4dp" />
     </LinearLayout>
 </LinearLayout>
