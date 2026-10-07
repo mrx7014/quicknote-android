@@ -58,6 +58,9 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: ./gradlew --no-daemon lint testDebugUnitTest assembleRelease
+      - name: Verify signed release APK
+        if: steps.signing.outputs.signed == 'true'
+        run: apksigner verify --verbose app/build/outputs/apk/release/app-release.apk
       - name: Upload signed APK artifact
         if: steps.signing.outputs.signed == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

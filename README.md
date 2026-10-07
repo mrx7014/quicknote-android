@@ -12,7 +12,7 @@ A local-first Android app for capturing notes, tasks, and voice memos. The inter
 - Biometric/device-credential app lock, configurable relock timeout, screenshot/recents protection, and private notifications.
 - Home-screen widget and separate Quick Settings tiles for note, task, and voice capture.
 - Voice playback and, on Android 13+ devices with compatible on-device recognition, local transcription with a selectable recognition language.
-- Optional, user-enabled floating capture card after unlock. It has a cooldown, idle timeout, and a persistent low-priority service notification.
+- Optional, user-enabled floating capture card after every unlock, with an idle timeout and a persistent low-priority service notification.
 
 ## Requirements
 
@@ -34,7 +34,7 @@ Task reminders use Android's inexact alarm API, so power-saving modes or the ope
 
 ## Unlock popup
 
-Open QuickNote or Settings and enable **Popup when I unlock**. Android requires the user to grant **Display over other apps** special access. The app shows an explanation first. The popup appears only while the feature and permission are enabled; a cooldown prevents it from repeatedly covering other apps, and an idle timeout closes it. The ongoing low-priority notification indicates that the foreground popup service is active. Some device manufacturers may apply additional background limits.
+Open QuickNote or Settings and enable **Popup when I unlock**. Android requires the user to grant **Display over other apps** special access. The app shows an explanation first. The popup appears after every unlock while the feature and permission are enabled, and an idle timeout closes it. The ongoing low-priority notification indicates that the foreground popup service is active. Some device manufacturers may apply additional background limits.
 
 ## Data, backups, and privacy
 
@@ -63,7 +63,7 @@ The release APK is written to `app/build/outputs/apk/release/app-release.apk`. K
 
 ## GitHub Actions
 
-The `Android release` workflow runs Gradle wrapper validation, Android lint, unit tests, and a release build on pushes and pull requests. It uploads distinctly named signed or unsigned APK artifacts. Only a signed build from a `v*` tag can be published as a GitHub Release. Configure these repository Actions secrets for signed CI releases:
+The `Android release` workflow runs Gradle wrapper validation, Android lint, unit tests, and a release APK build on pushes and pull requests. It verifies the APK signature and uploads distinctly named signed or unsigned APK artifacts. Only a signed build from a `v*` tag can be published as a GitHub Release. Configure these repository Actions secrets for signed CI releases:
 
 - `ANDROID_KEYSTORE_BASE64`
 - `ANDROID_KEYSTORE_PASSWORD`
@@ -71,3 +71,7 @@ The `Android release` workflow runs Gradle wrapper validation, Android lint, uni
 - `ANDROID_KEY_PASSWORD`
 
 Unsigned artifacts are for validation only and cannot update an installation signed with the release key.
+
+## App icon attribution
+
+The launcher icon is the **Sticky Notes** icon by [Icons8](https://icons8.com/icon/xZCHuxKdTCDa/sticky-notes), downloaded from the Icons8 image CDN. If distributing the app under an Icons8 free-use plan, keep the required Icons8 attribution according to their current license terms.
