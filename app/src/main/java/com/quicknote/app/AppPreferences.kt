@@ -17,7 +17,6 @@ object AppPreferences {
     private const val KEY_APP_LOCK = "app_lock_enabled"
     private const val KEY_LOCK_TIMEOUT = "app_lock_timeout"
     private const val KEY_PROTECT_SCREEN = "protect_screen_content"
-    private const val KEY_LAST_UNLOCK_POPUP = "last_unlock_popup_at"
     private const val KEY_RECOGNITION_LANGUAGE = "recognition_language"
     private const val KEY_SORT_MODE = "sort_mode"
 
@@ -84,16 +83,9 @@ object AppPreferences {
         preferences(context).edit().putString(KEY_SORT_MODE, mode).apply()
     }
 
-    /** Prevents unlock prompts from repeatedly covering another app. Preview actions bypass this gate. */
-    fun markUnlockPopupAllowed(context: Context, now: Long = System.currentTimeMillis()): Boolean {
-        if (!popupEnabled(context) || !Settings.canDrawOverlays(context)) return false
-        val prefs = preferences(context)
-        synchronized(this) {
-            val previous = prefs.getLong(KEY_LAST_UNLOCK_POPUP, 0L)
-            if (now - previous < UNLOCK_POPUP_COOLDOWN_MS) return false
-            return prefs.edit().putLong(KEY_LAST_UNLOCK_POPUP, now).commit()
-        }
-    }
+    /** Allows the unlock prompt on every device unlock when the feature and overlay permission are enabled. */
+    fun markUnlockPopupAllowed(context: Context): Boolean =
+        popupEnabled(context) && Settings.canDrawOverlays(context)
 
     fun setFrameworkLanguage(context: Context, language: String) {
         require(language in setOf("system", "en", "ar"))
@@ -103,7 +95,6 @@ object AppPreferences {
         } else preferences(context).edit().putString(KEY_LANGUAGE, language).apply()
     }
 
-    private const val UNLOCK_POPUP_COOLDOWN_MS = 15 * 60 * 1000L
 }
 
 object AppLocale {

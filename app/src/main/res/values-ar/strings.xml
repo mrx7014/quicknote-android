@@ -13,7 +13,7 @@
     <string name="record_stop_save">إيقاف وحفظ</string>
     <string name="save_button">حفظ</string>
     <string name="popup_title">نافذة عند فتح الهاتف</string>
-    <string name="popup_active">مفعّلة — تظهر بعد فتح الهاتف، مع فاصل 15 دقيقة</string>
+    <string name="popup_active">مفعّلة — تظهر بعد كل مرة تفتح فيها الهاتف</string>
     <string name="popup_permission_missing">اسمح بالظهور فوق التطبيقات لتفعيل هذه الميزة</string>
     <string name="popup_disabled">النافذة متوقفة. يمكنك تفعيلها من الإعدادات.</string>
     <string name="popup_preview">معاينة</string>
@@ -102,7 +102,7 @@
     <string name="overlay_permission_toast">اسمح بالظهور فوق التطبيقات من إعدادات Android.</string>
     <string name="enable_popup_dialog_title">تفعيل نافذة الفتح؟</string>
     <string name="enable_popup_dialog_message">سيطلب Android السماح لـQuickNote بعرض بطاقة إضافة صغيرة فوق التطبيقات الأخرى. يمكنك إلغاء هذا الإذن من الإعدادات في أي وقت.</string>
-    <string name="popup_cost_disclosure">تظهر النافذة فوق التطبيقات، وتتطلب خدمة مستمرة بإشعار منخفض الأهمية وقد تستهلك بطارية إضافية. لا تظهر أكثر من مرة كل 15 دقيقة. يمكنك بدلًا من ذلك استخدام أداة الشاشة الرئيسية أو اختصارات التطبيق أو بلاطات الإعدادات السريعة.</string>
+    <string name="popup_cost_disclosure">تظهر النافذة فوق التطبيقات، وتتطلب خدمة مستمرة بإشعار منخفض الأهمية وقد تستهلك بطارية إضافية. يمكنك بدلًا من ذلك استخدام أداة الشاشة الرئيسية أو اختصارات التطبيق أو بلاطات الإعدادات السريعة.</string>
     <string name="later">ليس الآن</string>
     <string name="continue_label">متابعة</string>
     <string name="open_settings">فتح الإعدادات</string>

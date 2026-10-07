@@ -13,7 +13,7 @@
     <string name="record_stop_save">Stop and save</string>
     <string name="save_button">Save</string>
     <string name="popup_title">Popup on unlock</string>
-    <string name="popup_active">Enabled — shown after unlock, with a 15-minute cooldown</string>
+    <string name="popup_active">Enabled — shown after every unlock</string>
     <string name="popup_permission_missing">Allow display over other apps to enable this feature</string>
     <string name="popup_disabled">Popup is off. You can enable it in Settings.</string>
     <string name="popup_preview">Preview</string>
@@ -102,7 +102,7 @@
     <string name="overlay_permission_toast">Allow display over other apps in Android settings.</string>
     <string name="enable_popup_dialog_title">Enable the unlock popup?</string>
     <string name="enable_popup_dialog_message">Android will ask you to allow QuickNote to display a compact capture card over other apps. This special access can be revoked at any time in Settings.</string>
-    <string name="popup_cost_disclosure">The popup appears over other apps, uses a persistent low-priority service notification, and may use additional battery. It is shown no more than once every 15 minutes. You can instead use the home-screen widget, launcher shortcuts, or Quick Settings tiles.</string>
+    <string name="popup_cost_disclosure">The popup appears over other apps, uses a persistent low-priority service notification, and may use additional battery. You can instead use the home-screen widget, launcher shortcuts, or Quick Settings tiles.</string>
     <string name="later">Not now</string>
     <string name="continue_label">Continue</string>
     <string name="open_settings">Open settings</string>
